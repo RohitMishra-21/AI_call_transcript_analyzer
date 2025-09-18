@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze Transcript - Call Analyzer{% endblock %}
+
+{% block content %}
+<div class="glass-morphism rounded-3xl overflow-hidden orange-glow">
+    <div class="bg-gradient-to-r from-orange-primary to-orange-secondary p-8 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold mb-4 text-white">
+            <i class="fas fa-brain mr-4"></i>AI Call Analyzer
+        </h1>
+        <p class="text-xl text-white/90">Analyze customer call transcripts with advanced AI to extract insights and sentiment</p>
+    </div>
+    <div class="p-8">
+        <form id="analyzeForm" method="POST" action="{{ url_for('analyze') }}" enctype="multipart/form-data">
+            <!-- Tab Navigation -->
+            <div class="flex space-x-2 mb-8">
+                <button type="button" class="tab-btn active bg-gradient-to-r from-orange-primary to-orange-secondary text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2" data-tab="text-input">
+                    <i class="fas fa-keyboard"></i>
+                    <span>Text Input</span>
+                </button>
+                <button type="button" class="tab-btn glass-morphism text-gray-300 hover:text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2" data-tab="json-input">
+                    <i class="fas fa-file-code"></i>
+                    <span>JSON Upload</span>
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- Text Input Tab -->
+                <div id="text-input" class="tab-pane active">
+                    <div class="mb-6">
+                        <label class="block text-lg font-semibold text-white mb-3">
+                            <i class="fas fa-comment-alt mr-2 text-orange-primary"></i>
+                            Enter Transcript
+                        </label>
+                        <textarea
+                            class="w-full h-48 px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-orange-primary focus:ring-2 focus:ring-orange-primary/50 transition-all duration-300 resize-none"
+                            name="transcript"
+                            id="transcript"
+                            placeholder="Paste your customer call transcript here...
+
+Example:
+Hi, I was trying to book a slot yesterday but the payment failed. I've been charged but didn't get a confirmation. Can you help me with this?"></textarea>
+                    </div>
+                </div>
+
+                <!-- JSON Upload Tab -->
+                <div id="json-input" class="tab-pane hidden">
+                    <div class="mb-6">
+                        <label class="block text-lg font-semibold text-white mb-3">
+                            <i class="fas fa-cloud-upload-alt mr-2 text-orange-primary"></i>
+                            Upload JSON Transcript
+                        </label>
+                        <div class="file-upload-area border-2 border-dashed border-gray-600 rounded-xl p-8 text-center transition-all duration-300 hover:border-orange-primary hover:bg-orange-primary/5 cursor-pointer" id="fileUploadArea">
+                            <div class="mb-4">
+                                <i class="fas fa-cloud-upload-alt text-6xl text-orange-primary"></i>
+                            </div>
+                            <h5 class="text-xl font-semibold text-white mb-3">Upload JSON Transcript</h5>
+                            <p class="text-gray-400 mb-4">
+                                Drag and drop your JSON file here or click to browse
+                            </p>
+                            <input type="file" class="hidden" name="json_file" id="jsonFile" accept=".json">
+                            <button type="button" class="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 flex items-center space-x-2 mx-auto" onclick="document.getElementById('jsonFile').click()">
+                                <i class="fas fa-folder-open"></i>
+                                <span>Choose File</span>
+                            </button>
+                        </div>
+
+                        <div class="mt-4 glass-morphism p-4 rounded-xl">
+                            <p class="text-sm text-gray-300 mb-2">
+                                <strong class="text-white">Supported JSON formats:</strong>
+                            </p>
+                            <div class="space-y-1 text-sm font-mono text-gray-400">
+                                <div><code class="bg-gray-800 px-2 py-1 rounded">{"transcript": "your text here"}</code></div>
+                                <div><code class="bg-gray-800 px-2 py-1 rounded">{"conversation": "your text here"}</code></div>
+                                <div><code class="bg-gray-800 px-2 py-1 rounded">{"dialogue": "your text here"}</code></div>
+                                <div><code class="bg-gray-800 px-2 py-1 rounded">{"text": "your text here"}</code></div>
+                            </div>
+                        </div>
+
+                        <!-- File Preview -->
+                        <div id="filePreview" class="mt-4 hidden">
+                            <div class="glass-morphism p-4 rounded-xl border-l-4 border-green-400">
+                                <div class="flex items-center space-x-2 mb-3">
+                                    <i class="fas fa-check-circle text-green-400"></i>
+                                    <strong class="text-white">File loaded:</strong>
+                                    <span id="fileName" class="text-orange-primary"></span>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-white mb-2">Preview:</label>
+                                    <textarea class="w-full h-32 px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-gray-200 text-sm resize-none" id="fileContent" readonly></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner hidden text-center py-8" id="loadingSpinner">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-orange-primary border-t-transparent"></div>
+                <p class="mt-4 text-white font-medium">Analyzing transcript with AI...</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap gap-4 justify-center mt-8">
+                <button type="submit" class="bg-gradient-to-r from-orange-primary to-orange-secondary hover:from-orange-accent hover:to-orange-primary text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:-translate-y-1 orange-glow flex items-center space-x-2 text-lg" id="analyzeBtn">
+                    <i class="fas fa-magic"></i>
+                    <span>Analyze Transcript</span>
+                </button>
+                <button type="button" class="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600 text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 hover:-translate-y-1 flex items-center space-x-2 text-lg" onclick="clearForm()">
+                    <i class="fas fa-redo"></i>
+                    <span>Clear</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Feature Cards -->
+<div class="grid md:grid-cols-3 gap-6 mt-12">
+    <div class="glass-morphism p-6 rounded-2xl text-center hover:orange-glow transition-all duration-300">
+        <div class="mb-4">
+            <i class="fas fa-chart-line text-4xl text-green-400"></i>
+        </div>
+        <h5 class="text-xl font-semibold text-white mb-3">Smart Analysis</h5>
+        <p class="text-gray-300">AI-powered summarization and sentiment analysis</p>
+    </div>
+    <div class="glass-morphism p-6 rounded-2xl text-center hover:orange-glow transition-all duration-300">
+        <div class="mb-4">
+            <i class="fas fa-file-csv text-4xl text-yellow-400"></i>
+        </div>
+        <h5 class="text-xl font-semibold text-white mb-3">Export Data</h5>
+        <p class="text-gray-300">Automatically save results to CSV for further analysis</p>
+    </div>
+    <div class="glass-morphism p-6 rounded-2xl text-center hover:orange-glow transition-all duration-300">
+        <div class="mb-4">
+            <i class="fas fa-history text-4xl text-orange-primary"></i>
+        </div>
+        <h5 class="text-xl font-semibold text-white mb-3">Track History</h5>
+        <p class="text-gray-300">View all previous analyses and track patterns</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const jsonFileInput = document.getElementById('jsonFile');
+    const filePreview = document.getElementById('filePreview');
+    const fileName = document.getElementById('fileName');
+    const fileContent = document.getElementById('fileContent');
+    const analyzeForm = document.getElementById('analyzeForm');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+
+    // Tab functionality
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+
+            // Update button states
+            tabBtns.forEach(b => {
+                b.classList.remove('active', 'bg-gradient-to-r', 'from-orange-primary', 'to-orange-secondary', 'text-white');
+                b.classList.add('glass-morphism', 'text-gray-300', 'hover:text-white');
+            });
+            this.classList.add('active', 'bg-gradient-to-r', 'from-orange-primary', 'to-orange-secondary', 'text-white');
+            this.classList.remove('glass-morphism', 'text-gray-300', 'hover:text-white');
+
+            // Update tab panes
+            tabPanes.forEach(pane => {
+                pane.classList.add('hidden');
+                pane.classList.remove('active');
+            });
+            const targetPane = document.getElementById(targetTab);
+            targetPane.classList.remove('hidden');
+            targetPane.classList.add('active');
+
+            clearForm();
+        });
+    });
+
+    // Drag and drop functionality
+    fileUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('border-orange-primary', 'bg-orange-primary/10');
+    });
+
+    fileUploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-orange-primary', 'bg-orange-primary/10');
+    });
+
+    fileUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('border-orange-primary', 'bg-orange-primary/10');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].name.endsWith('.json')) {
+            jsonFileInput.files = files;
+            handleFileSelect(files[0]);
+        } else {
+            alert('Please drop a valid JSON file.');
+        }
+    });
+
+    // Click to upload
+    fileUploadArea.addEventListener('click', function() {
+        jsonFileInput.click();
+    });
+
+    // File input change
+    jsonFileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        if (!file.name.endsWith('.json')) {
+            alert('Please select a JSON file.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const jsonData = JSON.parse(e.target.result);
+                fileName.textContent = file.name;
+
+                let transcript = '';
+                if (jsonData.transcript) transcript = jsonData.transcript;
+                else if (jsonData.conversation) transcript = jsonData.conversation;
+                else if (jsonData.dialogue) transcript = jsonData.dialogue;
+                else if (jsonData.text) transcript = jsonData.text;
+                else transcript = JSON.stringify(jsonData, null, 2);
+
+                fileContent.value = transcript;
+                filePreview.classList.remove('hidden');
+            } catch (error) {
+                alert('Invalid JSON file. Please check the file format.');
+                jsonFileInput.value = '';
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // Form submission with loading state
+    analyzeForm.addEventListener('submit', function(e) {
+        const textInput = document.getElementById('transcript').value.trim();
+        const hasJsonFile = jsonFileInput.files.length > 0;
+
+        if (!textInput && !hasJsonFile) {
+            e.preventDefault();
+            alert('Please enter a transcript or upload a JSON file.');
+            return;
+        }
+
+        // Show loading state
+        loadingSpinner.classList.remove('hidden');
+        analyzeBtn.disabled = true;
+        analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Analyzing...</span>';
+    });
+});
+
+function clearForm() {
+    document.getElementById('transcript').value = '';
+    document.getElementById('jsonFile').value = '';
+    document.getElementById('filePreview').classList.add('hidden');
+    document.getElementById('loadingSpinner').classList.add('hidden');
+
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '<i class="fas fa-magic mr-2"></i><span>Analyze Transcript</span>';
+}
+</script>
+{% endblock %}

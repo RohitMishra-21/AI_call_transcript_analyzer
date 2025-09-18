@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Call Transcript Analyzer{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'orange-primary': '#ff6b35',
+                        'orange-secondary': '#ff8f65',
+                        'orange-accent': '#ff4500',
+                        'true-black': '#000000',
+                        'deep-black': '#0a0a0a',
+                        'dark-gray': '#1a1a1a',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 107, 53, 0.1);
+        }
+
+        .orange-glow {
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.3);
+        }
+
+        .orange-glow-strong {
+            box-shadow: 0 0 50px rgba(255, 107, 53, 0.5);
+        }
+
+        .text-shadow-orange {
+            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+        }
+
+        body {
+            background: #000000;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 107, 53, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 143, 101, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 60% 20%, rgba(255, 69, 0, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+    </style>
+</head>
+<body class="font-inter text-white min-h-screen bg-true-black">
+    <nav class="glass-morphism fixed top-0 w-full z-50 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <a href="{{ url_for('index') }}" class="flex items-center space-x-2">
+                    <i class="fas fa-phone-alt text-orange-primary text-xl"></i>
+                    <span class="text-2xl font-bold bg-gradient-to-r from-orange-primary to-orange-secondary bg-clip-text text-transparent text-shadow-orange">
+                        Call Analyzer
+                    </span>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="{{ url_for('index') }}" class="flex items-center space-x-2 text-white hover:text-orange-primary transition-all duration-300 hover:-translate-y-0.5 hover:drop-shadow-lg">
+                        <i class="fas fa-search"></i>
+                        <span class="font-medium">Analyze</span>
+                    </a>
+                    <a href="{{ url_for('history') }}" class="flex items-center space-x-2 text-white hover:text-orange-primary transition-all duration-300 hover:-translate-y-0.5 hover:drop-shadow-lg">
+                        <i class="fas fa-history"></i>
+                        <span class="font-medium">History</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="pt-20"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-2xl glass-morphism border-l-4 {% if category == 'error' %}border-red-500{% else %}border-green-500{% endif %} flex items-center space-x-3">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' }} text-{{ 'red' if category == 'error' else 'green' }}-400"></i>
+                        <span class="text-white font-medium">{{ message }}</span>
+                        <button type="button" class="ml-auto text-gray-400 hover:text-white transition-colors" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        // Add smooth scrolling and animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add fade-in animation to main content
+            const mainContent = document.querySelector('.main-card');
+            if (mainContent) {
+                mainContent.classList.add('fade-in');
+            }
+
+            // Auto-dismiss alerts after 5 seconds (except persistent ones)
+            const alerts = document.querySelectorAll('.alert:not(#summaryAlert):not(.alert-success):not(.alert-info)');
+            alerts.forEach(alert => {
+                if (!alert.id || alert.id !== 'summaryAlert') {
+                    setTimeout(() => {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }, 5000);
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

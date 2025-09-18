@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History - Call Analyzer{% endblock %}
+
+{% block content %}
+<div class="main-card">
+    <div class="card-header">
+        <h1><i class="fas fa-history me-3"></i>Analysis History</h1>
+        <p>Review all your previous call transcript analyses and insights</p>
+    </div>
+    <div class="card-body">
+        {% if records %}
+            <div class="row mb-4">
+                {% set positive_count = records | selectattr('Sentiment', 'equalto', 'Positive') | list | length %}
+                {% set negative_count = records | selectattr('Sentiment', 'equalto', 'Negative') | list | length %}
+                {% set neutral_count = records | selectattr('Sentiment', 'equalto', 'Neutral') | list | length %}
+                {% set total_count = records | length %}
+
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                        <i class="fas fa-smile fa-2x mb-2"></i>
+                        <h3 class="mb-1">{{ positive_count }}</h3>
+                        <p class="mb-0">Positive</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;">
+                        <i class="fas fa-meh fa-2x mb-2"></i>
+                        <h3 class="mb-1">{{ neutral_count }}</h3>
+                        <p class="mb-0">Neutral</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white;">
+                        <i class="fas fa-frown fa-2x mb-2"></i>
+                        <h3 class="mb-1">{{ negative_count }}</h3>
+                        <p class="mb-0">Negative</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                        <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                        <h3 class="mb-1">{{ total_count }}</h3>
+                        <p class="mb-0">Total</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4><i class="fas fa-list me-2"></i>Recent Analyses</h4>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterResults('all')">
+                        <i class="fas fa-list me-1"></i>All
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="filterResults('positive')">
+                        <i class="fas fa-smile me-1"></i>Positive
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="filterResults('neutral')">
+                        <i class="fas fa-meh me-1"></i>Neutral
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="filterResults('negative')">
+                        <i class="fas fa-frown me-1"></i>Negative
+                    </button>
+                </div>
+            </div>
+
+            <div class="row" id="analysisGrid">
+                {% for record in records %}
+                    {% set loop_index = loop.index0 %}
+                    {% set sentiment_lower = record.Sentiment.lower() %}
+
+                    {% if 'positive' in sentiment_lower %}
+                        {% set sentiment_color = 'success' %}
+                        {% set sentiment_icon = 'smile' %}
+                        {% set sentiment_bg = '#10b981' %}
+                    {% elif 'negative' in sentiment_lower %}
+                        {% set sentiment_color = 'danger' %}
+                        {% set sentiment_icon = 'frown' %}
+                        {% set sentiment_bg = '#ef4444' %}
+                    {% else %}
+                        {% set sentiment_color = 'warning' %}
+                        {% set sentiment_icon = 'meh' %}
+                        {% set sentiment_bg = '#f59e0b' %}
+                    {% endif %}
+
+                    <div class="col-lg-6 mb-4 analysis-item" data-sentiment="{{ sentiment_lower }}">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                         style="width: 40px; height: 40px; background-color: {{ sentiment_bg }}20;">
+                                        <i class="fas fa-{{ sentiment_icon }} text-{{ sentiment_color }}"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">Analysis #{{ loop.index }}</h6>
+                                        <small class="text-muted">{{ record.Timestamp }}</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-{{ sentiment_color }} rounded-pill">
+                                    {{ record.Sentiment }}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fas fa-file-alt me-1"></i>Transcript Preview
+                                    </h6>
+                                    <p class="small text-truncate-3">
+                                        {{ record.Transcript[:150] }}{% if record.Transcript|length > 150 %}...{% endif %}
+                                    </p>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fas fa-compress-alt me-1"></i>Summary
+                                    </h6>
+                                    <p class="small mb-0">{{ record.Summary }}</p>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="viewDetails({{ loop_index }})">
+                                        <i class="fas fa-eye me-1"></i>View Details
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('{{ record.Summary | replace("'", "\\'") | replace('"', '\\"') }}')">
+                                        <i class="fas fa-copy me-1"></i>Copy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('download_csv') }}" class="btn btn-success btn-lg">
+                    <i class="fas fa-download me-2"></i>Download All Data (CSV)
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg ms-3">
+                    <i class="fas fa-plus me-2"></i>New Analysis
+                </a>
+            </div>
+
+        {% else %}
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-chart-line fa-4x text-muted"></i>
+                </div>
+                <h4 class="text-muted mb-3">No Analysis History Found</h4>
+                <p class="text-muted mb-4">Start analyzing customer call transcripts to see your history here.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket me-2"></i>Start First Analysis
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-search-plus me-2"></i>Analysis Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6 class="text-muted mb-2">Original Transcript</h6>
+                        <div class="p-3 bg-light rounded mb-4" style="max-height: 200px; overflow-y: auto;">
+                            <p id="modalTranscript" class="mb-0 small"></p>
+                        </div>
+
+                        <h6 class="text-muted mb-2">AI Summary</h6>
+                        <div class="alert alert-info border-0">
+                            <p id="modalSummary" class="mb-0"></p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted mb-3">Analysis Info</h6>
+                        <div class="card border-0" style="background: var(--light-color);">
+                            <div class="card-body text-center">
+                                <div id="modalSentimentIcon" class="mb-3">
+                                    <i class="fas fa-smile fa-3x"></i>
+                                </div>
+                                <h4 id="modalSentiment" class="mb-2">Positive</h4>
+                                <p class="text-muted mb-0">Customer Sentiment</p>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                <span id="modalTimestamp">Timestamp</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" onclick="copyAnalysis()">
+                    <i class="fas fa-copy me-2"></i>Copy Analysis
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const analysisData = {{ records | tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add entrance animations
+    const items = document.querySelectorAll('.analysis-item');
+    items.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            item.style.transition = 'all 0.6s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+
+function filterResults(sentiment) {
+    const items = document.querySelectorAll('.analysis-item');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+
+    // Update active button
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+
+    items.forEach(item => {
+        if (sentiment === 'all' || item.dataset.sentiment.includes(sentiment)) {
+            item.style.display = 'block';
+            item.style.animation = 'fadeIn 0.5s ease';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function viewDetails(index) {
+    const record = analysisData[index];
+    const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+
+    document.getElementById('modalTranscript').textContent = record.Transcript;
+    document.getElementById('modalSummary').textContent = record.Summary;
+    document.getElementById('modalSentiment').textContent = record.Sentiment;
+    document.getElementById('modalTimestamp').textContent = record.Timestamp;
+
+    // Update sentiment display
+    const sentiment = record.Sentiment.toLowerCase();
+    const iconElement = document.getElementById('modalSentimentIcon');
+    const sentimentElement = document.getElementById('modalSentiment');
+
+    if (sentiment.includes('positive')) {
+        iconElement.innerHTML = '<i class="fas fa-smile fa-3x text-success"></i>';
+        sentimentElement.className = 'mb-2 text-success';
+    } else if (sentiment.includes('negative')) {
+        iconElement.innerHTML = '<i class="fas fa-frown fa-3x text-danger"></i>';
+        sentimentElement.className = 'mb-2 text-danger';
+    } else {
+        iconElement.innerHTML = '<i class="fas fa-meh fa-3x text-warning"></i>';
+        sentimentElement.className = 'mb-2 text-warning';
+    }
+
+    modal.show();
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification('Summary copied to clipboard!', 'success');
+    });
+}
+
+function copyAnalysis() {
+    const transcript = document.getElementById('modalTranscript').textContent;
+    const summary = document.getElementById('modalSummary').textContent;
+    const sentiment = document.getElementById('modalSentiment').textContent;
+    const timestamp = document.getElementById('modalTimestamp').textContent;
+
+    const analysisText = `Call Analysis Report
+Time: ${timestamp}
+
+Summary: ${summary}
+Sentiment: ${sentiment}
+
+Original Transcript:
+${transcript}`;
+
+    navigator.clipboard.writeText(analysisText).then(() => {
+        showNotification('Full analysis copied to clipboard!', 'success');
+    });
+}
+
+function downloadCSV() {
+    // This would trigger the CSV download
+    window.location.href = '/download-csv'; // This endpoint would need to be implemented
+    showNotification('CSV download started!', 'info');
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible position-fixed`;
+    notification.style.cssText = 'top: 100px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(notification);
+        bsAlert.close();
+    }, 3000);
+}
+</script>
+
+<style>
+.text-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.analysis-item {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.analysis-item:hover {
+    transform: translateY(-5px);
+}
+
+.analysis-item:hover .card {
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+</style>
+{% endblock %}
